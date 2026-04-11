@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAV Re-marking Agent</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+.container { max-width: 720px; margin: 0 auto; }
+h1 { font-size: 20px; font-weight: 500; margin-bottom: 0.25rem; }
+.subtitle { font-size: 13px; color: #666; margin-bottom: 2rem; }
+.progress-steps { display: flex; margin-bottom: 2rem; }
+.ps { flex: 1; text-align: center; font-size: 11px; color: #999; padding-bottom: 6px; border-bottom: 2px solid #ddd; transition: all 0.2s; }
+.ps.active { color: #1a1a1a; border-bottom-color: #1a1a1a; font-weight: 500; }
+.ps.done { color: #0F6E56; border-bottom-color: #1D9E75; }
+.step { display: none; }
+.step.active { display: block; }
+.section-label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+.hint { font-size: 13px; color: #666; margin-bottom: 0.75rem; line-height: 1.5; }
+textarea { width: 100%; border: 0.5px solid #ccc; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: inherit; background: #fff; color: #1a1a1a; resize: vertical; outline: none; }
+textarea:focus { border-color: #888; }
+.card { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 0.5px solid #ccc; border-radius: 8px; background: transparent; color: #1a1a1a; font-size: 14px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+.btn:hover { background: #f0f0f0; }
+.btn-primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+.btn-primary:hover { opacity: 0.85; background: #1a1a1a; }
+.btn-sm { padding: 5px 10px; font-size: 13px; }
+.pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+.pill-approved { background: #E1F5EE; color: #0F6E56; }
+.pill-rejected { background: #FAECE7; color: #712B13; }
+.comp-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 0.5px solid #eee; flex-wrap: wrap; }
+.comp-row:last-of-type { border-bottom: none; }
+.comp-name { flex: 1; font-size: 14px; min-width: 120px; }
+.nav-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0.75rem 0; }
+.metric-box { background: #f5f5f3; border-radius: 8px; padding: 0.75rem; }
+.metric-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+.metric-val { font-size: 18px; font-weight: 500; }
+.metric-val.up { color: #0F6E56; }
+.metric-val.down { color: #993C1D; }
+.commentary { font-size: 13px; color: #555; line-height: 1.6; border-left: 2px solid #ddd; padding-left: 10px; margin-top: 0.75rem; }
+.error-msg { margin-top: 8px; padding: 8px 12px; background: #FAECE7; border-radius: 8px; font-size: 13px; color: #993C1D; }
+.spinner { width: 24px; height: 24px; border: 2px solid #eee; border-top-color: #1a1a1a; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 1rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.company-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 6px; }
+.company-name { font-size: 15px; font-weight: 500; }
+.api-section { background: #fff; border: 0.5px solid #e0e0e0; border-radius: 12px; padding: 1.25rem; margin-bottom: 2rem; }
+.api-input { width: 100%; border: 0.5px solid #ccc; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: inherit; background: #fff; color: #1a1a1a; outline: none; }
+.api-input:focus { border-color: #888; }
+.api-note { font-size: 12px; color: #999; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>NAV Re-marking Agent</h1>
+  <p class="subtitle">Re-mark portfolio NAV using live public comp multiples — powered by Claude AI</p>
+
+  <div class="api-section">
+    <div class="section-label">Anthropic API Key</div>
+    <p class="hint">Required to run the agent. Get yours at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+    <input type="password" class="api-input" id="apiKey" placeholder="sk-ant-..." />
+    <p class="api-note">Your key is never stored or sent anywhere except directly to Anthropic's API.</p>
+  </div>
+
+  <div class="progress-steps">
+    <div class="ps active" id="ps1">1. Input</div>
+    <div class="ps" id="ps2">2. Finding comps</div>
+    <div class="ps" id="ps3">3. Review comps</div>
+    <div class="ps" id="ps4">4. Re-marked NAV</div>
+  </div>
+
+  <div class="step active" id="s1">
+    <div class="section-label">Portfolio companies</div>
+    <p class="hint">One per line: <strong>Company Name, Sector, NAV</strong> — NAV can be any format ($45M, $151K, $2B, 80M, etc.)</p>
+    <textarea id="inp" rows="7" placeholder="Warehouse on Wheels, Logistics, $151K
+BrightTech Software, Software, $12M
+MedCore Group, Healthcare, $80M"></textarea>
+    <div style="margin-top:0.75rem;">
+      <button class="btn btn-primary" onclick="go()">Suggest comps →</button>
+    </div>
+    <div id="err" style="display:none;" class="error-msg"></div>
+  </div>
+
+  <div class="step" id="s2">
+    <div class="card" style="text-align:center;padding:2.5rem;">
+      <div class="spinner"></div>
+      <div style="font-size:14px;color:#666;" id="lmsg">Searching for public comps...</div>
+    </div>
+  </div>
+
+  <div class="step" id="s3">
+    <div class="section-label" style="margin-bottom:0.75rem;">Approve or reject each comp</div>
+    <div id="cr"></div>
+    <div style="margin-top:1rem;display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="remark()">Re-mark NAV →</button>
+      <button class="btn" onclick="show(1)">Back</button>
+    </div>
+  </div>
+
+  <div class="step" id="s4">
+    <div class="section-label" style="margin-bottom:0.75rem;">Re-marked NAV</div>
+    <div id="res"></div>
+    <div style="margin-top:1rem;display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="exportCSV()">Export CSV</button>
+      <button class="btn" onclick="reset()">Start over</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let cos=[], sugg={}, appr={};
+
+function show(n){
+  ['s1','s2','s3','s4'].forEach((id,i)=>document.getElementById(id).style.display=i+1===n?'block':'none');
+  ['ps1','ps2','ps3','ps4'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    el.className='ps'+(i+1<n?' done':i+1===n?' active':'');
+  });
+}
+
+function err(msg){
+  const e=document.getElementById('err');
+  e.textContent=msg;
+  e.style.display=msg?'block':'none';
+}
+
+function getKey(){
+  const k=document.getElementById('apiKey').value.trim();
+  if(!k){alert('Please enter your Anthropic API key first.');return null;}
+  return k;
+}
+
+function parse(){
+  return document.getElementById('inp').value.trim().split('\n').filter(l=>l.trim()).map(l=>{
+    const p=l.split(',').map(s=>s.trim());
+    return {name:p[0]||l.trim(), sector:p[1]||'General', nav:p[2]||'N/A'};
+  });
+}
+
+async function claude(prompt, apiKey){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+  });
+  if(!r.ok){const d=await r.json();throw new Error(d.error?.message||'HTTP '+r.status);}
+  const d=await r.json();
+  const t=(d.content||[]).find(b=>b.type==='text')?.text||'';
+  const s=t.indexOf('{'), e=t.lastIndexOf('}');
+  if(s<0||e<0)throw new Error('No JSON in response');
+  return JSON.parse(t.slice(s,e+1));
+}
+
+async function go(){
+  err('');
+  const key=getKey(); if(!key)return;
+  const companies=parse();
+  if(!companies.length){err('Please enter at least one company.');return;}
+  cos=companies;
+  show(2);
+  const msgs=['Searching for public comps...','Analyzing sector multiples...','Ranking comparable companies...'];
+  let mi=0;
+  const tick=setInterval(()=>{document.getElementById('lmsg').textContent=msgs[++mi%msgs.length];},2000);
+  try{
+    const d=await claude(`You are a PE analyst. For each portfolio company, suggest 3 public comparable companies.
+Return ONLY a raw JSON object, no markdown, no backticks, no explanation:
+{"companies":[{"name":"EXACT_NAME","comps":[{"ticker":"TICK","name":"Full Name","ev_ebitda":"12.5x","rationale":"One sentence why this is a good comp."}]}]}
+
+Companies:
+${companies.map(c=>`${c.name} | ${c.sector} | NAV: ${c.nav}`).join('\n')}`, key);
+    clearInterval(tick);
+    sugg={};appr={};
+    (d.companies||[]).forEach(c=>{sugg[c.name]=c.comps||[];appr[c.name]=(c.comps||[]).map(()=>true);});
+    renderComps(d.companies||[]);
+    show(3);
+  }catch(e){
+    clearInterval(tick);
+    show(1);
+    err('Error: '+e.message);
+  }
+}
+
+function renderComps(companies){
+  document.getElementById('cr').innerHTML=companies.map((c,ci)=>{
+    const pc=cos.find(p=>p.name===c.name)||{};
+    return`<div class="card">
+      <div class="company-header">
+        <span class="company-name">${c.name}</span>
+        <span style="font-size:12px;color:#888;">${pc.sector||''} &bull; ${pc.nav||''}</span>
+      </div>
+      ${(c.comps||[]).map((comp,cj)=>`
+        <div class="comp-row">
+          <div class="comp-name"><span style="font-weight:500;">${comp.ticker}</span><span style="font-size:13px;color:#888;margin-left:6px;">${comp.name}</span></div>
+          <div style="font-size:12px;color:#888;min-width:80px;">${comp.ev_ebitda} EV/EBITDA</div>
+          <span class="pill pill-approved" id="pill-${ci}-${cj}">Approved</span>
+          <button class="btn btn-sm" id="btn-${ci}-${cj}" onclick="toggle(${ci},${cj},'${c.name.replace(/'/g,"\\'")}',this)" style="border-color:#D85A30;color:#993C1D;">Reject</button>
+        </div>
+        <div style="font-size:12px;color:#777;padding:4px 0 8px;line-height:1.5;">${comp.rationale}</div>
+      `).join('')}
+    </div>`;
+  }).join('');
+}
+
+function toggle(ci,cj,name,btn){
+  appr[name][cj]=!appr[name][cj];
+  const on=appr[name][cj];
+  const pill=document.getElementById(`pill-${ci}-${cj}`);
+  pill.className='pill '+(on?'pill-approved':'pill-rejected');
+  pill.textContent=on?'Approved':'Rejected';
+  btn.style.borderColor=on?'#D85A30':'#1D9E75';
+  btn.style.color=on?'#993C1D':'#0F6E56';
+  btn.textContent=on?'Reject':'Restore';
+}
+
+async function remark(){
+  const key=getKey(); if(!key)return;
+  show(2);
+  document.getElementById('lmsg').textContent='Re-marking NAV with approved comps...';
+  const data=cos.map(c=>({name:c.name,sector:c.sector,reportedNav:c.nav,approvedComps:(sugg[c.name]||[]).filter((_,i)=>appr[c.name]?.[i])}));
+  try{
+    const d=await claude(`You are a PE secondaries analyst. Re-mark NAV using approved public comps.
+Return ONLY a raw JSON object, no markdown, no backticks:
+{"results":[{"name":"CompanyName","reported_nav":"$45M","remarked_nav":"$52M","delta":"+$7M","delta_pct":"+15.6%","median_ev_ebitda":"14.2x","commentary":"2-3 sentences on re-mark rationale and key drivers."}]}
+
+Data: ${JSON.stringify(data)}`, key);
+    renderResults(d.results||[]);
+    show(4);
+  }catch(e){
+    show(3);
+    alert('Re-marking failed: '+e.message);
+  }
+}
+
+function renderResults(results){
+  let tr=0,tm=0;
+  results.forEach(r=>{
+    tr+=parseFloat(r.reported_nav.replace(/[^0-9.]/g,''))||0;
+    tm+=parseFloat(r.remarked_nav.replace(/[^0-9.]/g,''))||0;
+  });
+  const d=tm-tr,sign=d>=0?'+':'',pct=tr?((d/tr)*100).toFixed(1):'0.0';
+  document.getElementById('res').innerHTML=`
+    <div class="nav-grid" style="margin-bottom:1.25rem;">
+      <div class="metric-box"><div class="metric-label">Reported NAV</div><div class="metric-val">$${tr.toFixed(1)}M</div></div>
+      <div class="metric-box"><div class="metric-label">Re-marked NAV</div><div class="metric-val">$${tm.toFixed(1)}M</div></div>
+      <div class="metric-box"><div class="metric-label">Total delta</div><div class="metric-val ${d>=0?'up':'down'}">${sign}$${Math.abs(d).toFixed(1)}M (${sign}${pct}%)</div></div>
+    </div>
+    ${results.map(r=>{const up=!r.delta.startsWith('-');return`
+    <div class="card">
+      <div class="company-header">
+        <span class="company-name">${r.name}</span>
+        <span class="pill ${up?'pill-approved':'pill-rejected'}">${r.delta} (${r.delta_pct})</span>
+      </div>
+      <div class="nav-grid">
+        <div class="metric-box"><div class="metric-label">Reported</div><div class="metric-val">${r.reported_nav}</div></div>
+        <div class="metric-box"><div class="metric-label">Re-marked</div><div class="metric-val ${up?'up':'down'}">${r.remarked_nav}</div></div>
+        <div class="metric-box"><div class="metric-label">Median EV/EBITDA</div><div class="metric-val">${r.median_ev_ebitda}</div></div>
+      </div>
+      <div class="commentary">${r.commentary}</div>
+    </div>`}).join('')}`;
+  window._results=results;
+}
+
+function exportCSV(){
+  const r=window._results||[];
+  const rows=[['Company','Reported NAV','Re-marked NAV','Delta','Delta %','Median EV/EBITDA','Commentary'],...r.map(x=>[x.name,x.reported_nav,x.remarked_nav,x.delta,x.delta_pct,x.median_ev_ebitda,'"'+x.commentary.replace(/"/g,"'")+'"'])];
+  const csv=rows.map(r=>r.join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='nav_remarking.csv';
+  a.click();
+}
+
+function reset(){
+  cos=[];sugg={};appr={};
+  document.getElementById('inp').value='';
+  err('');
+  show(1);
+}
+</script>
+</body>
+</html>
