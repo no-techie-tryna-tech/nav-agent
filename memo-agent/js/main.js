@@ -540,9 +540,30 @@ document.getElementById('importFile').onchange = async (e) => {
 
 function openKBModal() {
   document.getElementById('kbText').value = kbText;
+  document.getElementById('kbFileStatus').textContent = '';
   document.getElementById('kbModal').classList.add('open');
 }
+
+async function handleKBFiles(fileList) {
+  const statusEl = document.getElementById('kbFileStatus');
+  const ta = document.getElementById('kbText');
+  for (const file of Array.from(fileList)) {
+    statusEl.textContent = 'Extracting ' + file.name + '…';
+    try {
+      const text = await extractTextFromFile(file);
+      ta.value = (ta.value ? ta.value + '\n\n' : '') + '----- FROM FILE: ' + file.name + ' -----\n' + text.trim();
+      statusEl.textContent = 'Added ' + file.name + ' (' + text.length.toLocaleString() + ' chars). Click Save to keep it.';
+    } catch (err) {
+      statusEl.textContent = err.message;
+    }
+  }
+}
 document.getElementById('btnKB').onclick = openKBModal;
+document.getElementById('kbDropZone').onclick = () => document.getElementById('kbFileInput').click();
+document.getElementById('kbFileInput').onchange = (e) => { handleKBFiles(e.target.files); e.target.value = ''; };
+document.getElementById('kbDropZone').ondragover = (e) => { e.preventDefault(); e.currentTarget.classList.add('dragover'); };
+document.getElementById('kbDropZone').ondragleave = (e) => e.currentTarget.classList.remove('dragover');
+document.getElementById('kbDropZone').ondrop = (e) => { e.preventDefault(); e.currentTarget.classList.remove('dragover'); handleKBFiles(e.dataTransfer.files); };
 document.getElementById('btnKBClose').onclick = () => document.getElementById('kbModal').classList.remove('open');
 document.getElementById('btnKBSave').onclick = () => {
   kbText = document.getElementById('kbText').value;
