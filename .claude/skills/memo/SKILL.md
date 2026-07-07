@@ -67,6 +67,25 @@ tone, guardrails). Where the underlying data has gaps, say so plainly rather
 than inventing figures. Save it to `deals/<company>/memo.md` and show the
 user a summary with the file path.
 
+## Stage 6 — Publish to Notion (optional)
+
+After the memo is saved, check whether Notion MCP tools are available in this
+session (tool names starting with `mcp__notion` / `mcp__Notion` — use
+ToolSearch to look for them; they exist only if the user has connected the
+Notion connector).
+
+- If available: read the "Publishing" section of `knowledge-base.md` for the
+  destination (a Notion database or parent page). If no destination is
+  configured there, ask the user where to publish. Create a page titled
+  "Investment Memo — <Company>" with the full memo content, preserving the
+  heading structure and tables. Confirm the page URL back to the user.
+  Publishing is outward-facing: if anything about the destination is
+  ambiguous, confirm with the user before creating the page.
+- If not available and the user asked to publish: tell them to connect
+  Notion at claude.ai → Settings → Connectors → Notion → Connect, then
+  start a new session and re-run just this stage (the memo is already saved,
+  so nothing else needs to re-run).
+
 ## Guardrails
 
 - Numbers in the memo must come from the computed JSON files, never from an

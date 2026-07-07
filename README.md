@@ -25,6 +25,9 @@ repo (e.g. claude.ai/code in the browser — nothing to install).
 3. The Principal runs all four sub-agents in order, runs the deterministic
    calculations, and writes the finished memo to `deals/<company>/memo.md`,
    with every intermediate stage saved as JSON alongside it for review.
+4. Optionally publishes the memo to Notion — connect the Notion connector
+   (claude.ai → Settings → Connectors) and set the destination in the
+   "Publishing" section of `knowledge-base.md`.
 
 Firm-wide memo guidelines live in [`knowledge-base.md`](knowledge-base.md) —
 edit that file to change how every memo is written.

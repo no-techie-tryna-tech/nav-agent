@@ -22,6 +22,13 @@ paste in text from your firm's memo template.
 - State data gaps explicitly; never smooth over missing information.
 - Use tables for financial figures, prose for reasoning.
 
+## Publishing
+
+- Notion destination: (not configured — set this to a Notion database or
+  parent page name/URL, e.g. "Deal Memos database". Stage 6 of the /memo
+  pipeline publishes the finished memo there when the Notion connector is
+  available in the session.)
+
 ## Hard guardrails
 
 - Always flag customer concentration above 20% of revenue in Risks.
