@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memo Agent</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9D%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Memo Agent</div>
+    <div class="topbar-actions">
+      <span class="project-name" id="projectName">Untitled project</span>
+      <button class="btn btn-sm" id="btnRename">Rename</button>
+      <button class="btn btn-sm" id="btnNew">New</button>
+      <button class="btn btn-sm" id="btnExport">Export</button>
+      <button class="btn btn-sm" id="btnImport">Import</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;">
+      <button class="btn btn-sm" id="btnKB">Knowledge base</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <p class="subtitle">Build a venture capital investment memo with 5 cooperating agents &mdash; you run each prompt in your own Claude.ai chat, paste the answer back in, and this app stores, computes, and assembles the results. No API key, no extra cost.</p>
+
+  <div class="progress-steps" id="stepper">
+    <div class="ps active" data-step="1"><span class="ps-num">1</span>Intake</div>
+    <div class="ps" data-step="2"><span class="ps-num">2</span>Financial DD</div>
+    <div class="ps" data-step="3"><span class="ps-num">3</span>Market sizing</div>
+    <div class="ps" data-step="4"><span class="ps-num">4</span>Strategy</div>
+    <div class="ps" data-step="5"><span class="ps-num">5</span>Memo</div>
+  </div>
+
+  <div id="stepContent"></div>
+</div>
+
+<div class="modal-backdrop" id="kbModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="section-label">Knowledge base &amp; guardrails</span>
+      <button class="btn btn-sm" id="btnKBClose">Close</button>
+    </div>
+    <p class="hint">Paste your firm's memo template, required sections, tone/style rules, investment criteria, or any other guardrails here. This is saved on this device and reused by Agent 5 (Memo) for every project.</p>
+    <textarea id="kbText" rows="16" placeholder="e.g.&#10;Section order: Overview, Market, Team, Financials, Risks, Recommendation&#10;Tone: concise, no hype language&#10;Always flag customer concentration above 20%&#10;Investment thesis must reference our fund's stage/check-size criteria&#10;..."></textarea>
+    <div style="margin-top:0.75rem;display:flex;gap:8px;">
+      <button class="btn btn-primary" id="btnKBSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="renameModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <span class="section-label">Rename project</span>
+      <button class="btn btn-sm" id="btnRenameClose">Close</button>
+    </div>
+    <input type="text" class="api-input" id="renameInput" placeholder="Project name">
+    <div style="margin-top:0.75rem;display:flex;gap:8px;">
+      <button class="btn btn-primary" id="btnRenameSave">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="vendor/mammoth/mammoth.browser.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

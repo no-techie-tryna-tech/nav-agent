@@ -1,0 +1,3 @@
+pdfjs-dist 6.1.200 (build/pdf.min.mjs + pdf.worker.min.mjs)
+mammoth 1.12.0 (mammoth.browser.min.js)
+pdfjs-dist standard_fonts (needed for accurate text extraction on PDFs without embedded fonts)
