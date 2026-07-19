@@ -28,6 +28,20 @@ function list(items) {
   return `<ul class="bullet-list">${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul>`;
 }
 
+// Render a MethodResult's errors/warnings. Errors block the step; warnings
+// travel with the analysis so data-quality issues are never invisible.
+export function renderWarnings(result) {
+  if (!result) return '';
+  let html = '';
+  if (result.errors && result.errors.length) {
+    html += `<div class="card" style="border-color:#D85A30;"><h3 style="color:#993C1D;">Input problems — fix the pasted data</h3><ul class="bullet-list">${result.errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul><p class="small-hint">Re-run the prompt or correct the JSON, then parse again.</p></div>`;
+  }
+  if (result.warnings && result.warnings.length) {
+    html += `<div class="card" style="border-color:#e0c060;"><h3>Data-quality warnings</h3><ul class="bullet-list">${result.warnings.map((w) => `<li>${esc(w)}</li>`).join('')}</ul></div>`;
+  }
+  return html;
+}
+
 export function renderStep1Output(o) {
   if (!o) return '';
   return `
@@ -103,7 +117,7 @@ export function renderStep2Output(raw, computed) {
   return `
   <div class="card">
     <h3>Financial due diligence — computed metrics</h3>
-    <p class="small-hint">All ratios below are computed deterministically in-browser from Agent 2's extracted figures — not by the AI — so they're exact given the source data. DSO/DPO/DIO assume each period ≈ 1 year.</p>
+    <p class="small-hint">All ratios below are computed deterministically in-browser from Agent 2's extracted figures — not by the AI — so they're exact given the source data. Day metrics (DSO/DPO/DIO) use the reporting-period length inferred from the period labels (annual, quarterly, monthly, or LTM).</p>
     <div class="metric-grid">${cagrBox}</div>
     ${table}
   </div>

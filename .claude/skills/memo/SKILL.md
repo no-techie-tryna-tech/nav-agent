@@ -36,8 +36,13 @@ and the docs folder path. Save its reply to `deals/<company>/02-financials-raw.j
 
 Then compute the deterministic metrics — do NOT let any agent do this math:
 
-    node scripts/compute-financials.mjs financials deals/<company>/02-financials-raw.json \
+    node scripts/engine-cli.mjs run financial-dd deals/<company>/02-financials-raw.json \
       > deals/<company>/02-financials-computed.json
+
+The output is a MethodResult envelope. Check its `ok` field: if false, the
+`errors` array explains what is wrong with the agent's extraction — re-prompt
+the agent to fix those specific problems. Always read the `warnings` array
+and carry material warnings into the memo's data-quality notes.
 
 ## Stage 3 — Market sizing (sub-agent: market-sizing-analyst)
 
@@ -46,12 +51,16 @@ computed metrics inline. Save its reply to `deals/<company>/03-market.json`.
 
 Then compute the sizing projections deterministically:
 
-    node scripts/compute-financials.mjs market deals/<company>/03-market.json \
+    node scripts/engine-cli.mjs run market-sizing deals/<company>/03-market.json \
       > deals/<company>/03-market-computed.json
 
-If the user wants to test different assumptions, re-run that command with
-overrides (`market <file> [samPct] [somPct] [growthPct] [years]`) — no agent
-call needed.
+If the user wants to test different assumptions, re-run with overrides — no
+agent call needed:
+
+    node scripts/engine-cli.mjs run market-sizing deals/<company>/03-market.json somPct=25 years=7
+
+`node scripts/engine-cli.mjs assumptions market-sizing` lists every editable
+assumption with its metadata (range, unit, description).
 
 ## Stage 4 — Strategy (sub-agent: strategy-analyst)
 

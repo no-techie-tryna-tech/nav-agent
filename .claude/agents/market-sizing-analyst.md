@@ -25,7 +25,9 @@ Method:
   these as the levers to stress-test.
 
 Reply with ONLY a single raw JSON object matching this schema (no markdown
-fences, no commentary):
+fences, no commentary). The canonical copy of this schema lives in
+memo-agent/engine/core/schema.js (marketSizingSchemaText) — if this file and
+that one ever disagree, schema.js wins:
 
 {
   "methodology": "top-down" | "bottom-up" | "both",

@@ -1,0 +1,9 @@
+{
+  "methodology": "both",
+  "tam": { "value": 8000000000, "unit": "USD", "basis": "Global warehouse automation robotics market" },
+  "sam": { "value": 1600000000, "pct_of_tam": 20, "basis": "Mid-market 3PLs in North America" },
+  "som": { "value": 160000000, "pct_of_sam": 10, "timeframe": "5 years", "basis": "Realistic penetration given current sales capacity" },
+  "market_growth_rate_pct": 18,
+  "key_assumptions": ["3PL adoption accelerates 18%/yr"],
+  "sources_implied": ["Industry analyst reports"]
+}

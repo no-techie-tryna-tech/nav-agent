@@ -1,0 +1,27 @@
+{
+  "currency": "USD",
+  "periods": ["FY2023", "FY2024", "FY2025"],
+  "income_statement": {
+    "revenue": [1500000, 2800000, 4200000],
+    "cogs": [900000, 1600000, 2300000],
+    "gross_profit": [600000, 1200000, 1900000],
+    "opex": [1100000, 1500000, 1800000],
+    "ebitda_reported": [-500000, -300000, 100000],
+    "net_income": [-550000, -340000, 60000]
+  },
+  "addbacks": [
+    { "label": "One-time legal fees", "period": "FY2024", "amount": 80000, "rationale": "Litigation settlement, non-recurring" }
+  ],
+  "balance_sheet": {
+    "accounts_receivable": [200000, 350000, 500000],
+    "inventory": [100000, 180000, 220000],
+    "accounts_payable": [150000, 220000, 300000],
+    "cash": [2000000, 1500000, 3200000]
+  },
+  "cash_flow": {
+    "operating_cash_flow": [-400000, -200000, 150000],
+    "capex": [300000, 400000, 500000]
+  },
+  "customer_concentration": "Top 2 customers represent 45% of FY2025 revenue",
+  "notes": ["FY2025 figures are YTD annualized estimates"]
+}

@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// Deterministic financial + market-sizing math for the memo pipeline.
-// Reuses the exact same calculation module as the web app (memo-agent/js/calc.js)
-// so both modes always agree.
+// @ts-check
+// DEPRECATED: kept for backward compatibility with older pipeline docs.
+// Use scripts/engine-cli.mjs instead:
+//   node scripts/engine-cli.mjs run financial-dd <input.json>
+//   node scripts/engine-cli.mjs run market-sizing <input.json> [samPct=.. somPct=.. growthPct=.. years=..]
 //
-// Usage:
-//   node scripts/compute-financials.mjs financials <agent2-output.json>
-//   node scripts/compute-financials.mjs market <agent3-output.json> [samPct] [somPct] [growthPct] [years]
+// This wrapper preserves the old output shapes exactly.
 
 import { readFileSync } from 'node:fs';
 import { computeFinancials, computeMarketSizing, defaultAssumptionsFromStep3 } from '../memo-agent/js/calc.js';
@@ -13,7 +13,7 @@ import { computeFinancials, computeMarketSizing, defaultAssumptionsFromStep3 } f
 const [, , command, file, ...rest] = process.argv;
 
 function usage() {
-  console.error('Usage:');
+  console.error('DEPRECATED — prefer scripts/engine-cli.mjs. Legacy usage:');
   console.error('  compute-financials.mjs financials <agent2-output.json>');
   console.error('  compute-financials.mjs market <agent3-output.json> [samPct] [somPct] [growthPct] [years]');
   process.exit(1);
