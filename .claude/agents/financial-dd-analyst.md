@@ -46,6 +46,7 @@ that one ever disagree, schema.js wins:
     "gross_profit": [number|null],
     "opex": [number|null],
     "ebitda_reported": [number|null],
+    "d_and_a": [number|null],
     "net_income": [number|null]
   },
   "addbacks": [{ "label": string, "period": string, "amount": number, "rationale": string, "source_doc": string|null }],
@@ -53,7 +54,8 @@ that one ever disagree, schema.js wins:
     "accounts_receivable": [number|null],
     "inventory": [number|null],
     "accounts_payable": [number|null],
-    "cash": [number|null]
+    "cash": [number|null],
+    "total_debt": [number|null]
   },
   "cash_flow": {
     "operating_cash_flow": [number|null],

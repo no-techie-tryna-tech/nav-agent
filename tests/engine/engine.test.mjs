@@ -10,16 +10,18 @@ import { inferPeriodType, periodDays } from '../../memo-agent/engine/core/period
 
 const fdInput = JSON.parse(readFileSync(new URL('../fixtures/financial-dd-input.json', import.meta.url), 'utf8'));
 const msInput = JSON.parse(readFileSync(new URL('../fixtures/market-sizing-input.json', import.meta.url), 'utf8'));
+const dcfInput = JSON.parse(readFileSync(new URL('../fixtures/dcf-input.json', import.meta.url), 'utf8'));
 
-test('registry lists both methods and rejects unknown ids', () => {
+test('registry lists every method and rejects unknown ids', () => {
   const ids = listMethods().map((m) => m.id).sort();
-  assert.deepEqual(ids, ['financial-dd', 'market-sizing']);
-  assert.throws(() => getMethod('dcf'), /Unknown method/);
+  assert.deepEqual(ids, ['dcf', 'financial-dd', 'market-sizing']);
+  assert.throws(() => getMethod('lbo'), /Unknown method/);
 });
 
 test('every method returns the standardized envelope', () => {
+  const inputs = { 'financial-dd': fdInput, 'market-sizing': msInput, dcf: dcfInput };
   for (const { id } of listMethods()) {
-    const input = id === 'financial-dd' ? fdInput : msInput;
+    const input = inputs[id];
     const r = getMethod(id).run(input);
     assert.equal(r.schemaVersion, 1);
     assert.equal(r.method, id);

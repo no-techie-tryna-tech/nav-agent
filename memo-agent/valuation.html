@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valuation Workbench — Memo Agent</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%88%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<style>
+  .model-tabs { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .model-tab { padding: 8px 16px; border: 0.5px solid #ccc; border-radius: 8px; font-size: 13px; cursor: pointer; background: #fff; }
+  .model-tab.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .model-tab.disabled { opacity: 0.45; cursor: not-allowed; }
+  .model-tab .soon { font-size: 10px; margin-left: 6px; background: #eee; color: #666; border-radius: 99px; padding: 1px 6px; }
+  .model-tab.active .soon { background: #444; color: #ccc; }
+  .section-nav { position: sticky; top: 49px; z-index: 10; background: #f5f5f3; padding: 0.5rem 0; display: flex; gap: 6px; flex-wrap: wrap; }
+  .section-nav a { font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 0.5px solid #ddd; color: #555; text-decoration: none; background: #fff; }
+  .section-nav a:hover { border-color: #888; }
+  .val-input { width: 110px; border: 0.5px solid #ccc; border-radius: 6px; padding: 5px 8px; font-size: 13px; font-family: inherit; text-align: right; background: #fff; }
+  .val-input:focus { border-color: #555; outline: none; }
+  .val-input.blue { color: #0645ad; font-weight: 500; }
+  .grid-input { width: 72px; border: 0.5px solid #d5d5d3; border-radius: 5px; padding: 3px 6px; font-size: 12px; font-family: inherit; text-align: right; color: #0645ad; background: #fff; }
+  .grid-input:focus { border-color: #555; outline: none; }
+  .assum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  .assum-item label { display: block; font-size: 12px; color: #666; margin-bottom: 3px; }
+  table.dd-table td.neg { color: #993C1D; }
+  table.dd-table tr.hl td { background: #f7f7f4; font-weight: 600; }
+  .sens-table td.centre { outline: 1.5px solid #1a1a1a; font-weight: 600; }
+  .method-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 720px) { .method-cols { grid-template-columns: 1fr; } }
+  .footnote { font-size: 11.5px; color: #999; line-height: 1.5; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">Valuation Workbench</div>
+    <div class="topbar-actions">
+      <span class="project-name" id="companyName"></span>
+      <a class="btn btn-sm" href="index.html">← Memo Agent</a>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <p class="subtitle">Deterministic valuation models pre-populated from your Financial DD data. Every number is computed by the in-browser engine — the same math as the pipeline CLI — and every assumption is yours to edit. Blue values are editable inputs.</p>
+
+  <div class="model-tabs">
+    <div class="model-tab active" data-model="dcf">DCF</div>
+    <div class="model-tab disabled" title="Planned — trading comparables with peer multiples">Comparables<span class="soon">soon</span></div>
+    <div class="model-tab disabled" title="Planned — precedent M&A transaction multiples">Precedent<span class="soon">soon</span></div>
+  </div>
+
+  <div class="section-nav">
+    <a href="#sec-assumptions">Assumptions</a>
+    <a href="#sec-financials">Financials</a>
+    <a href="#sec-forecasts">Company forecasts</a>
+    <a href="#sec-dcfinput">DCF input</a>
+    <a href="#sec-dcfoutput">DCF output</a>
+  </div>
+
+  <div id="workbench"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="js/valuation.js"></script>
+</body>
+</html>

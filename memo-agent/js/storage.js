@@ -11,7 +11,8 @@ function emptyProject(name) {
     step2: { documents: [], prompt: '', raw: '', output: null },
     step3: { prompt: '', raw: '', output: null, assumptions: { samPct: 20, somPct: 10, growthPct: 15, years: 5 } },
     step4: { prompt: '', raw: '', output: null },
-    step5: { prompt: '', memoText: '' }
+    step5: { prompt: '', memoText: '' },
+    valuation: null
   };
 }
 

@@ -59,6 +59,9 @@ export function run(inputs, _overrides = {}) {
     const inventory = at(bs.inventory, i);
     const ap = at(bs.accounts_payable, i);
     const cash = at(bs.cash, i);
+    const totalDebt = at(bs.total_debt, i);
+    const netDebt = totalDebt !== null && cash !== null ? totalDebt - cash : null;
+    const da = at(is.d_and_a, i);
     const nwc = ar !== null && inventory !== null && ap !== null ? ar + inventory - ap : null;
 
     const dso = div(ar, revenue) !== null ? /** @type {number} */ (div(ar, revenue)) * days : null;
@@ -76,7 +79,8 @@ export function run(inputs, _overrides = {}) {
       addbacksTotal, ebitdaAdjusted, adjustedEbitdaMarginPct: pct(ebitdaAdjusted, revenue),
       netIncome, netMarginPct: pct(netIncome, revenue),
       revenueGrowthPct: growthPct(is.revenue || [], i),
-      ar, inventory, ap, cash, nwc,
+      da, daPctOfRevenue: pct(da, revenue),
+      ar, inventory, ap, cash, totalDebt, netDebt, nwc,
       dso, dpo, dio, cashConversionCycle: ccc,
       ocf, capex, fcf, fcfMarginPct: pct(fcf, revenue),
       addbacks: periodAddbacks

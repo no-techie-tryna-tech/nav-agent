@@ -21,6 +21,7 @@ export const financialDDSchemaText = `{
     "gross_profit": [number|null],
     "opex": [number|null],
     "ebitda_reported": [number|null],
+    "d_and_a": [number|null],
     "net_income": [number|null]
   },
   "addbacks": [{ "label": string, "period": string, "amount": number, "rationale": string, "source_doc": string|null }],
@@ -28,7 +29,8 @@ export const financialDDSchemaText = `{
     "accounts_receivable": [number|null],
     "inventory": [number|null],
     "accounts_payable": [number|null],
-    "cash": [number|null]
+    "cash": [number|null],
+    "total_debt": [number|null]
   },
   "cash_flow": {
     "operating_cash_flow": [number|null],
@@ -40,6 +42,7 @@ export const financialDDSchemaText = `{
 }`;
 
 export const financialDDSchemaRules = `- Use plain numbers (no currency symbols, no commas), in the currency's base unit (e.g. dollars, not thousands) unless the source only gives rounded units — note that in "notes".
+- "d_and_a" is depreciation + amortisation as a POSITIVE expense amount; "total_debt" is gross interest-bearing debt. Both feed the valuation models downstream (DCF needs D&A; net debt = total_debt - cash).
 - "periods" must line up positionally across every array (income_statement, balance_sheet, cash_flow) — e.g. periods[0] corresponds to revenue[0], accounts_receivable[0], etc.
 - "provenance": for each material line item, record which document (and page/section if identifiable) the numbers came from — e.g. {"item": "income_statement.revenue", "source_doc": "FY25_financials.pdf", "location": "p.3 income statement"}. An analyst must be able to trace every number back to a source.
 - "source_doc" on each add-back: the document the add-back was identified from (null only if genuinely unclear).

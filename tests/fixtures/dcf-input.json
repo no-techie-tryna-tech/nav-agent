@@ -1,0 +1,19 @@
+{
+  "_source": "Happy Hour Co DCF model workbook — 'DCF input' sheet, FY2021-FY2030 forecast columns (J-S). Sign conventions preserved: D&A/capex/other/exceptionals negative, NWC change positive = inflow.",
+  "currency": "USD",
+  "forecast": [
+    { "label": "FY2021", "revenue": 1255.6304578332745, "ebitda": 74.62082745560894, "d_and_a": -40.45529352334902, "capex": -51, "nwc_change": 16.111954440903407, "other_cashflows": 0, "exceptionals": -18.004468664734777, "tax_rate_pct": 17 },
+    { "label": "FY2022", "revenue": 1353.8373857301615, "ebitda": 105.04425761584664, "d_and_a": -47.19525761580874, "capex": -50, "nwc_change": 15.168892666804709, "other_cashflows": -5, "exceptionals": -6.752718042979367, "tax_rate_pct": 17 },
+    { "label": "FY2023", "revenue": 1446.9754795854417, "ebitda": 125.53341134268536, "d_and_a": -51.82954358679417, "capex": -50, "nwc_change": 11.110216900668604, "other_cashflows": -5, "exceptionals": 25.138454026318882, "tax_rate_pct": 17 },
+    { "label": "FY2024", "revenue": 1442.6203434361955, "ebitda": 122.70307784147422, "d_and_a": -54.79991214882919, "capex": -50, "nwc_change": 3.954859553239036, "other_cashflows": -5, "exceptionals": -4.865040571049306, "tax_rate_pct": 17 },
+    { "label": "FY2025", "revenue": 1471.4727503049194, "ebitda": 126.54665652622307, "d_and_a": -48.5, "capex": -50, "nwc_change": 4.034259254532957, "other_cashflows": -5, "exceptionals": 0, "tax_rate_pct": 17 },
+    { "label": "FY2026", "revenue": 1497.9592598103877, "ebitda": 130.32245560350374, "d_and_a": -48.5, "capex": -50, "nwc_change": 4.10687410705823, "other_cashflows": -5, "exceptionals": 0, "tax_rate_pct": 17 },
+    { "label": "FY2027", "revenue": 1521.9266079669938, "ebitda": 133.92954150109545, "d_and_a": -48, "capex": -50, "nwc_change": 4.172584319452473, "other_cashflows": -5, "exceptionals": 0, "tax_rate_pct": 17 },
+    { "label": "FY2028", "revenue": 1543.2335804785318, "ebitda": 137.34778866258934, "d_and_a": -48, "capex": -50, "nwc_change": 4.230997228255938, "other_cashflows": -5, "exceptionals": 0, "tax_rate_pct": 17 },
+    { "label": "FY2029", "revenue": 1561.7523834442742, "ebitda": 140.5577145099847, "d_and_a": -47.75, "capex": -50, "nwc_change": 4.281768239211125, "other_cashflows": -5, "exceptionals": 0, "tax_rate_pct": 17 },
+    { "label": "FY2030", "revenue": 1577.3699072787168, "ebitda": 141.96329165508452, "d_and_a": -47.5, "capex": -50, "nwc_change": 4.324582662677471, "other_cashflows": -5, "exceptionals": 0, "tax_rate_pct": 17 }
+  ],
+  "net_debt": 84.61681353958498,
+  "shares_outstanding": 199,
+  "current_share_price": 1.65
+}
