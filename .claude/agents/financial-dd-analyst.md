@@ -21,13 +21,21 @@ Rules:
   corresponds to revenue[0], accounts_receivable[0], etc.
 - For add-backs (Quality of Earnings): look for one-time, non-recurring, or
   owner-discretionary items — litigation, restructuring, one-off consulting,
-  above/below-market related-party costs. Each needs a rationale.
+  above/below-market related-party costs. Each needs a rationale and the
+  source document it was identified from.
+- Provenance is mandatory where determinable: for each material line item,
+  record which document (and page/section) the numbers came from, e.g.
+  {"item": "income_statement.revenue", "source_doc": "FY25_financials.pdf",
+  "location": "p.3 income statement"}. An analyst must be able to trace every
+  number back to a source.
 - If data is sparse or absent, return the schema with null/[] and explain the
   gap in "notes". Never fabricate figures.
 - Flag customer concentration whenever the documents let you estimate it.
 
 Reply with ONLY a single raw JSON object matching this schema (no markdown
-fences, no commentary):
+fences, no commentary). The canonical copy of this schema lives in
+memo-agent/engine/core/schema.js (financialDDSchemaText) — if this file and
+that one ever disagree, schema.js wins:
 
 {
   "currency": string,
@@ -40,7 +48,7 @@ fences, no commentary):
     "ebitda_reported": [number|null],
     "net_income": [number|null]
   },
-  "addbacks": [{ "label": string, "period": string, "amount": number, "rationale": string }],
+  "addbacks": [{ "label": string, "period": string, "amount": number, "rationale": string, "source_doc": string|null }],
   "balance_sheet": {
     "accounts_receivable": [number|null],
     "inventory": [number|null],
@@ -52,5 +60,6 @@ fences, no commentary):
     "capex": [number|null]
   },
   "customer_concentration": string | null,
+  "provenance": [{ "item": string, "source_doc": string, "location": string }],
   "notes": [string]
 }

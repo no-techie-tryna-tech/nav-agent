@@ -60,15 +60,45 @@ Tuning levers, roughly in order of impact:
 
 - **The rules block** of each prompt (what to prioritize, what counts as an
   add-back, how many hypotheses) — this is where most quality comes from.
-- **The JSON schema** — add a field and it flows through: the automated mode
-  saves whatever the agent returns, and the memo stage reads the saved JSON.
-  (In the web app, also render the new field in `memo-agent/js/render.js`.)
+- **The JSON schemas** — canonically defined in
+  `memo-agent/engine/core/schema.js` (the web prompts render from it; the
+  agent `.md` files carry a mirror). Change it there first.
 - **`knowledge-base.md`** — memo structure, tone, and hard guardrails,
   without touching any agent.
-- **The deterministic math** in `memo-agent/js/calc.js` — shared by both
-  modes (the CLI wrapper is `scripts/compute-financials.mjs`); changing a
-  formula here changes it everywhere, and keeps arithmetic out of the AI's
-  hands.
+- **The valuation engine** in `memo-agent/engine/` — all deterministic math,
+  shared by both modes. See below.
 
-If you edit an agent's schema, keep the two modes' prompts in sync so a
-project started in one mode stays readable by your eyes in the other.
+## The valuation engine
+
+All financial math lives in `memo-agent/engine/` — a pure, dependency-free
+module with no DOM, no AI, and no network. LLMs extract data and interpret
+results; they never perform the arithmetic.
+
+```
+engine/
+  core/        series math, period model, validation, assumption registry,
+               result envelope, canonical schemas
+  methods/     one module per methodology (financial-dd, market-sizing, ...)
+  index.js     registry: getMethod(id).run(inputs, assumptions)
+```
+
+Every method implements the same interface — `id`, `name`, `assumptionDefs`
+(metadata: default/min/max/unit/description, which the UI renders as sliders
+automatically), and `run()` returning a standardized `MethodResult` envelope
+(`ok`, `errors`, `warnings`, `assumptionsUsed`, `outputs`, `summary`). New
+methodologies (DCF, comps, LBO...) plug in by adding one file to `methods/`
+and registering it in `index.js`.
+
+CLI (used by the automated pipeline between agent stages):
+
+```
+node scripts/engine-cli.mjs list
+node scripts/engine-cli.mjs assumptions market-sizing
+node scripts/engine-cli.mjs run financial-dd deals/acme/02-financials-raw.json
+node scripts/engine-cli.mjs run market-sizing deals/acme/03-market.json somPct=25
+```
+
+Development: `npm install` once, then `npm test` (unit + golden regression
+tests) and `npm run typecheck` (JSDoc-typed, checked with tsc). Any change to
+engine math must keep the golden tests in `tests/engine/golden.test.mjs`
+passing — those numbers are the verified contract.

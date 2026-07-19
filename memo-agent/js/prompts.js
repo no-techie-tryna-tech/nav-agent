@@ -1,3 +1,5 @@
+import { financialDDSchemaText, financialDDSchemaRules, marketSizingSchemaText } from '../engine/core/schema.js';
+
 const JSON_RULES = `IMPORTANT OUTPUT FORMAT:
 - Reply with ONLY a single raw JSON object matching the schema below.
 - No markdown code fences, no "Here is the JSON", no commentary before or after.
@@ -45,36 +47,10 @@ export function buildStep2Prompt(step1Output, documents) {
   return `You are Agent 2 (Financial Due Diligence Analyst) in a venture capital deal pipeline. A prior agent already produced a company snapshot (below). Now extract raw financial line items from the financial documents provided (statements, data rooms, spreadsheets pasted as text, financial highlights mentioned in the snapshot). Extract numbers only — do not compute ratios or margins yourself, another tool will do that deterministically.
 
 ${JSON_RULES}
-- Use plain numbers (no currency symbols, no commas), in the currency's base unit (e.g. dollars, not thousands) unless the source only gives rounded units — note that in "notes".
-- "periods" must line up positionally across every array (income_statement, balance_sheet, cash_flow) — e.g. periods[0] corresponds to revenue[0], accounts_receivable[0], etc.
-- If financial data is sparse or unavailable, still return the schema with null/[] and explain the gap in "notes" — do not fabricate figures.
+${financialDDSchemaRules}
 
 SCHEMA:
-{
-  "currency": string,
-  "periods": [string],
-  "income_statement": {
-    "revenue": [number|null],
-    "cogs": [number|null],
-    "gross_profit": [number|null],
-    "opex": [number|null],
-    "ebitda_reported": [number|null],
-    "net_income": [number|null]
-  },
-  "addbacks": [{ "label": string, "period": string, "amount": number, "rationale": string }],
-  "balance_sheet": {
-    "accounts_receivable": [number|null],
-    "inventory": [number|null],
-    "accounts_payable": [number|null],
-    "cash": [number|null]
-  },
-  "cash_flow": {
-    "operating_cash_flow": [number|null],
-    "capex": [number|null]
-  },
-  "customer_concentration": string | null,
-  "notes": [string]
-}
+${financialDDSchemaText}
 
 COMPANY SNAPSHOT (from Agent 1):
 ${JSON.stringify(step1Output, null, 2)}
@@ -89,15 +65,7 @@ export function buildStep3Prompt(step1Output, step2Output, computed) {
 ${JSON_RULES}
 
 SCHEMA:
-{
-  "methodology": "top-down" | "bottom-up" | "both",
-  "tam": { "value": number, "unit": string, "basis": string },
-  "sam": { "value": number, "pct_of_tam": number, "basis": string },
-  "som": { "value": number, "pct_of_sam": number, "timeframe": string, "basis": string },
-  "market_growth_rate_pct": number,
-  "key_assumptions": [string],
-  "sources_implied": [string]
-}
+${marketSizingSchemaText}
 
 COMPANY SNAPSHOT (Agent 1):
 ${JSON.stringify(step1Output, null, 2)}

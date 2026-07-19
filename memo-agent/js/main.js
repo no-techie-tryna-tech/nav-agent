@@ -1,8 +1,18 @@
 import { loadProject, saveProject, newProject, exportProject, importProjectFromFile, loadKnowledgeBase, saveKnowledgeBase } from './storage.js';
 import { extractTextFromFile } from './extract.js';
 import { buildStep1Prompt, buildStep2Prompt, buildStep3Prompt, buildStep4Prompt, buildStep5Prompt } from './prompts.js';
-import { computeFinancials, computeMarketSizing, defaultAssumptionsFromStep3 } from './calc.js';
-import { renderStep1Output, renderStep2Output, renderStep3Output, renderStep3Basis, renderStep4Output, renderMarkdown } from './render.js';
+import { getMethod } from '../engine/index.js';
+import { renderStep1Output, renderStep2Output, renderStep3Output, renderStep3Basis, renderStep4Output, renderMarkdown, renderWarnings } from './render.js';
+
+const financialDD = getMethod('financial-dd');
+const marketSizing = getMethod('market-sizing');
+
+function marketDefaults(step3Output) {
+  const values = {};
+  for (const def of marketSizing.assumptionDefs) values[def.key] = def.default;
+  // @ts-ignore method-specific helper
+  return Object.assign(values, marketSizing.defaultsFrom ? marketSizing.defaultsFrom(step3Output) : {});
+}
 
 let project = loadProject();
 let kbText = loadKnowledgeBase();
@@ -208,7 +218,10 @@ function renderStep2() {
       <div id="promptArea2">${s.prompt ? promptBoxHtml('promptText2', s.prompt) + pasteBackHtml('pasteText2', 'err2') : ''}</div>
       ${s.prompt ? `<div class="prompt-actions" style="margin-top:0.75rem;"><button class="btn btn-primary" id="btnParse2">Parse &amp; save</button></div>` : ''}
     </div>
-    <div id="output2">${s.output ? `<div class="card"><h3>✓ Financial data saved</h3><button class="btn btn-sm" id="btnEdit2">Regenerate this step</button></div>${renderStep2Output(s.output, computeFinancials(s.output))}<div style="margin-top:1rem;"><button class="btn" id="btnBack2">← Back</button> <button class="btn btn-primary" id="btnNext2">Next: Market sizing →</button></div>` : `<div style="margin-top:1rem;"><button class="btn" id="btnBack2">← Back</button></div>`}</div>
+    <div id="output2">${s.output ? (() => {
+      const res = financialDD.run(s.output);
+      return `<div class="card"><h3>✓ Financial data saved</h3><button class="btn btn-sm" id="btnEdit2">Regenerate this step</button></div>${renderWarnings(res)}${res.ok ? renderStep2Output(s.output, res.outputs) : ''}<div style="margin-top:1rem;"><button class="btn" id="btnBack2">← Back</button> ${res.ok ? '<button class="btn btn-primary" id="btnNext2">Next: Market sizing →</button>' : ''}</div>`;
+    })() : `<div style="margin-top:1rem;"><button class="btn" id="btnBack2">← Back</button></div>`}</div>
   </div>`;
 
   document.getElementById('dropZone2').onclick = () => document.getElementById('fileInput2').click();
@@ -266,7 +279,7 @@ function renderStep3() {
   const s = project.step3;
   const s1out = project.step1.output;
   const s2out = project.step2.output;
-  const computed2 = computeFinancials(s2out);
+  const computed2 = s2out ? financialDD.run(s2out) : null;
 
   stepContentEl.innerHTML = `
   <div class="step active">
@@ -295,7 +308,7 @@ function renderStep3() {
     try {
       s.output = parseJsonLoose(raw);
       s.raw = raw;
-      s.assumptions = defaultAssumptionsFromStep3(s.output);
+      s.assumptions = marketDefaults(s.output);
       persist();
       renderStep3();
       toast('Saved — Strategy unlocked');
@@ -319,40 +332,46 @@ function renderStep3Results() {
   }
 
   const a = s.assumptions;
-  const calc = computeMarketSizing(s.output, a);
+  const res = marketSizing.run(s.output, a);
+
+  const sliderRows = marketSizing.assumptionDefs.map((def) => {
+    const val = a[def.key] ?? def.default;
+    return `<div class="assumption-row" title="${def.description.replace(/"/g, '&quot;')}">
+      <label>${def.name}</label>
+      <input type="range" id="rng_${def.key}" min="${def.min}" max="${def.max}" step="${def.step || 1}" value="${val}">
+      <span class="aval" id="val_${def.key}">${val}${def.unit}</span>
+    </div>`;
+  }).join('');
 
   out.innerHTML = `
   <div class="card">
     <h3>✓ Market sizing saved</h3>
     <button class="btn btn-sm" id="btnEdit3">Regenerate this step</button>
   </div>
+  ${renderWarnings(res)}
   <div class="card">
     <h3>Adjust assumptions</h3>
-    <div class="assumption-row"><label>SAM as % of TAM</label><input type="range" id="rngSam" min="1" max="100" value="${a.samPct}"><span class="aval" id="valSam">${a.samPct}%</span></div>
-    <div class="assumption-row"><label>SOM as % of SAM</label><input type="range" id="rngSom" min="1" max="100" value="${a.somPct}"><span class="aval" id="valSom">${a.somPct}%</span></div>
-    <div class="assumption-row"><label>Annual growth rate</label><input type="range" id="rngGrowth" min="0" max="100" value="${a.growthPct}"><span class="aval" id="valGrowth">${a.growthPct}%</span></div>
-    <div class="assumption-row"><label>Projection years</label><input type="range" id="rngYears" min="1" max="10" value="${a.years}"><span class="aval" id="valYears">${a.years}</span></div>
+    <p class="small-hint">Hover a label for what it means. Changes recompute instantly and are saved.</p>
+    ${sliderRows}
   </div>
-  <div class="card" id="marketNumbers">${renderStep3Output(calc)}</div>
+  <div class="card" id="marketNumbers">${res.ok ? renderStep3Output(res.outputs) : ''}</div>
   ${renderStep3Basis(s.output)}
-  <div style="margin-top:1rem;"><button class="btn" id="btnBack3">← Back</button> <button class="btn btn-primary" id="btnNext3">Next: Strategy →</button></div>`;
+  <div style="margin-top:1rem;"><button class="btn" id="btnBack3">← Back</button> ${res.ok ? '<button class="btn btn-primary" id="btnNext3">Next: Strategy →</button>' : ''}</div>`;
 
-  const bind = (rngId, valId, key, isInt) => {
-    document.getElementById(rngId).oninput = (e) => {
-      a[key] = isInt ? parseInt(e.target.value, 10) : Number(e.target.value);
-      document.getElementById(valId).textContent = a[key] + (key === 'years' ? '' : '%');
+  for (const def of marketSizing.assumptionDefs) {
+    document.getElementById(`rng_${def.key}`).oninput = (e) => {
+      a[def.key] = Number(e.target.value);
+      document.getElementById(`val_${def.key}`).textContent = a[def.key] + def.unit;
       persist();
-      document.getElementById('marketNumbers').innerHTML = renderStep3Output(computeMarketSizing(s.output, a));
+      const rerun = marketSizing.run(s.output, a);
+      document.getElementById('marketNumbers').innerHTML = rerun.ok ? renderStep3Output(rerun.outputs) : '';
     };
-  };
-  bind('rngSam', 'valSam', 'samPct', true);
-  bind('rngSom', 'valSom', 'somPct', true);
-  bind('rngGrowth', 'valGrowth', 'growthPct', true);
-  bind('rngYears', 'valYears', 'years', true);
+  }
 
   document.getElementById('btnEdit3').onclick = () => { s.output = null; persist(); renderStep3(); };
   document.getElementById('btnBack3').onclick = () => goToStep(2);
-  document.getElementById('btnNext3').onclick = () => goToStep(4);
+  const next3 = document.getElementById('btnNext3');
+  if (next3) next3.onclick = () => goToStep(4);
 }
 
 // ---------- Step 4: Strategy ----------
@@ -361,7 +380,7 @@ function renderStep4() {
   const s = project.step4;
   const s1out = project.step1.output;
   const s2out = project.step2.output;
-  const computed2 = computeFinancials(s2out);
+  const computed2 = s2out ? financialDD.run(s2out) : null;
   const s3out = project.step3.output;
 
   stepContentEl.innerHTML = `
@@ -417,10 +436,9 @@ function renderStep5() {
   const allData = {
     company_snapshot: project.step1.output,
     financial_dd_raw: project.step2.output,
-    financial_dd_computed: computeFinancials(project.step2.output),
+    financial_dd_computed: project.step2.output ? financialDD.run(project.step2.output) : null,
     market_sizing: project.step3.output,
-    market_sizing_assumptions: project.step3.assumptions,
-    market_sizing_computed: computeMarketSizing(project.step3.output, project.step3.assumptions),
+    market_sizing_computed: project.step3.output ? marketSizing.run(project.step3.output, project.step3.assumptions) : null,
     strategy: project.step4.output
   };
 
