@@ -207,7 +207,7 @@ function renderStep2() {
   <div class="step active">
     <div class="card">
       <span class="section-label">Step 2 · Financial Due Diligence Agent</span>
-      <p class="hint">Upload financial statements or data if you have them (optional — the agent will also use anything financial mentioned in Step 1's source docs). It extracts raw numbers only; this app computes every ratio deterministically.</p>
+      <p class="hint">Upload the company's financial statements — quarterly (QFS) and/or annual (AFS), plus any data-room extracts (optional; the agent also uses anything financial mentioned in Step 1's source docs). It extracts raw numbers only; this app computes every ratio deterministically.</p>
       <div class="upload-zone" id="dropZone2">Click to choose files, or drag &amp; drop them here (optional)</div>
       <input type="file" id="fileInput2" multiple accept=".pdf,.docx,.txt,.md,.csv" style="display:none;">
       <div id="fileList2">${fileListHtml(s.documents, '__removeStep2File')}</div>
@@ -220,7 +220,17 @@ function renderStep2() {
     </div>
     <div id="output2">${s.output ? (() => {
       const res = financialDD.run(s.output);
-      return `<div class="card"><h3>✓ Financial data saved</h3><button class="btn btn-sm" id="btnEdit2">Regenerate this step</button></div>${renderWarnings(res)}${res.ok ? renderStep2Output(s.output, res.outputs) : ''}<div style="margin-top:1rem;"><button class="btn" id="btnBack2">← Back</button> ${res.ok ? '<button class="btn btn-primary" id="btnNext2">Next: Market sizing →</button>' : ''}</div>`;
+      const modelCards = res.ok ? `
+      <div class="card">
+        <span class="section-label">Run valuation models</span>
+        <p class="hint">Your extracted financials pre-populate the Valuation Workbench. Every model is computed deterministically in-browser — assumptions stay fully editable.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn btn-primary" href="valuation.html">DCF →</a>
+          <button class="btn" disabled title="Planned: trading comparables with peer multiples">Comparables (soon)</button>
+          <button class="btn" disabled title="Planned: precedent M&A transaction multiples">Precedent (soon)</button>
+        </div>
+      </div>` : '';
+      return `<div class="card"><h3>✓ Financial data saved</h3><button class="btn btn-sm" id="btnEdit2">Regenerate this step</button></div>${renderWarnings(res)}${res.ok ? renderStep2Output(s.output, res.outputs) : ''}${modelCards}<div style="margin-top:1rem;"><button class="btn" id="btnBack2">← Back</button> ${res.ok ? '<button class="btn btn-primary" id="btnNext2">Next: Market sizing →</button>' : ''}</div>`;
     })() : `<div style="margin-top:1rem;"><button class="btn" id="btnBack2">← Back</button></div>`}</div>
   </div>`;
 

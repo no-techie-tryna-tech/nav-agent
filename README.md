@@ -78,9 +78,22 @@ results; they never perform the arithmetic.
 engine/
   core/        series math, period model, validation, assumption registry,
                result envelope, canonical schemas
-  methods/     one module per methodology (financial-dd, market-sizing, ...)
+  methods/     one module per methodology (financial-dd, market-sizing, dcf, ...)
   index.js     registry: getMethod(id).run(inputs, assumptions)
 ```
+
+### Valuation Workbench
+
+`memo-agent/valuation.html` is the model UI (linked from Step 2 once
+financial data is saved). It automates the reference DCF workbook end to
+end: **Assumptions → Financials (historical, from DD) → Company forecasts
+(driver grid) → DCF input (unlevered FCF build) → DCF output** (EV bridges
+by perpetuity growth AND exit EBITDA multiple, equity value, implied share
+price, and WACC-cross sensitivity grids). Everything is pre-populated from
+the Financial DD extraction and recomputes live as assumptions change. The
+DCF engine (`engine/methods/dcf.js`) is golden-tested against the reference
+workbook's numbers. Trading Comparables and Precedent Transactions are the
+next methods slated for the same framework.
 
 Every method implements the same interface — `id`, `name`, `assumptionDefs`
 (metadata: default/min/max/unit/description, which the UI renders as sliders

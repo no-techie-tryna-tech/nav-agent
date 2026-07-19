@@ -5,6 +5,7 @@
 
 import * as financialDD from './methods/financial-dd.js';
 import * as marketSizing from './methods/market-sizing.js';
+import * as dcf from './methods/dcf.js';
 
 /**
  * The interface every valuation method module implements.
@@ -18,7 +19,7 @@ import * as marketSizing from './methods/market-sizing.js';
 
 /** @type {Map<string, MethodModule>} */
 const methods = new Map();
-for (const m of [financialDD, marketSizing]) methods.set(m.id, m);
+for (const m of [financialDD, marketSizing, dcf]) methods.set(m.id, m);
 
 /**
  * @param {string} id
