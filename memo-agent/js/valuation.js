@@ -35,26 +35,100 @@ function lastNonNull(arr) {
 
 function round2(v) { return v === null || v === undefined ? 0 : Math.round(v * 100) / 100; }
 
-// Seed the workbench from Financial DD data (or blank defaults without it).
+// Manual historical entry: the fallback when Financial DD data can't load
+// (scanned PDFs, no Step 2 yet). All values entered as POSITIVE magnitudes.
+const MH_ROWS = [
+  { key: 'revenue', label: 'Revenue' },
+  { key: 'ebitda', label: 'EBITDA' },
+  { key: 'd_and_a', label: 'D&A' },
+  { key: 'capex', label: 'Capex' },
+  { key: 'cash', label: 'Cash' },
+  { key: 'total_debt', label: 'Total debt' }
+];
+
+function manualHistDefault() {
+  return {
+    periods: ['FY2023', 'FY2024', 'FY2025'],
+    revenue: [null, null, null],
+    ebitda: [null, null, null],
+    d_and_a: [null, null, null],
+    capex: [null, null, null],
+    cash: [null, null, null],
+    total_debt: [null, null, null]
+  };
+}
+
+// One uniform snapshot of "the historicals", whether they came from the
+// Financial DD extraction or manual entry, used for seeding the model.
+// Reads the module-level `manualHist` (declared before `val`) so it can be
+// called safely during `val`'s own initialization.
+function getHistSnapshot() {
+  if (dd) {
+    const last = dd.perPeriod[dd.perPeriod.length - 1];
+    return {
+      source: 'dd',
+      currency: dd.currency,
+      periodLabel: last?.period ?? null,
+      revenue: last?.revenue ?? null,
+      growthPct: last?.revenueGrowthPct ?? dd.revenueCagrPct ?? null,
+      ebitdaMarginPct: last?.adjustedEbitdaMarginPct ?? last?.ebitdaMarginPct ?? null,
+      daPctOfRevenue: last?.daPctOfRevenue ?? null,
+      capexPctOfRevenue: last?.capex !== null && last?.capex !== undefined && last?.revenue ? Math.abs(last.capex) / last.revenue * 100 : null,
+      netDebt: lastNonNull(dd.perPeriod.map((p) => p.netDebt))
+    };
+  }
+  const mh = manualHist;
+  if (!mh) return null;
+  let li = -1;
+  for (let i = mh.periods.length - 1; i >= 0; i--) {
+    if (mh.revenue[i] !== null && mh.revenue[i] !== undefined) { li = i; break; }
+  }
+  if (li === -1) return null;
+  const rev = mh.revenue[li];
+  const prev = li > 0 ? mh.revenue[li - 1] : null;
+  const pick = (key) => (mh[key][li] !== null && mh[key][li] !== undefined ? mh[key][li] : null);
+  const cash = pick('cash');
+  const debt = pick('total_debt');
+  return {
+    source: 'manual',
+    currency: 'USD',
+    periodLabel: mh.periods[li],
+    revenue: rev,
+    growthPct: prev !== null && prev !== 0 ? (rev / prev - 1) * 100 : null,
+    ebitdaMarginPct: pick('ebitda') !== null && rev ? (pick('ebitda') / rev) * 100 : null,
+    daPctOfRevenue: pick('d_and_a') !== null && rev ? (pick('d_and_a') / rev) * 100 : null,
+    capexPctOfRevenue: pick('capex') !== null && rev ? (pick('capex') / rev) * 100 : null,
+    netDebt: debt !== null || cash !== null ? (debt ?? 0) - (cash ?? 0) : null
+  };
+}
+
+// Manual-historicals state, declared before `val` so getHistSnapshot() /
+// seedValuation() can read it during val's initializer without hitting the
+// temporal dead zone. Kept as the same object reference as val.manualHist so
+// edits stay in sync.
+let manualHist = project.valuation && project.valuation.manualHist
+  ? project.valuation.manualHist
+  : manualHistDefault();
+
+// Seed the workbench from the historicals snapshot — Financial DD data when
+// present, manual entry otherwise, generic defaults when neither exists.
 function seedValuation(years) {
   const n = years || 10;
-  const last = dd ? dd.perPeriod[dd.perPeriod.length - 1] : null;
-  const baseRevenue = last?.revenue ?? 100;
-  const lastGrowth = round2(last?.revenueGrowthPct ?? (dd?.revenueCagrPct ?? 8));
-  const startGrowth = Math.max(-20, Math.min(40, lastGrowth || 8));
-  const margin = round2(last?.adjustedEbitdaMarginPct ?? last?.ebitdaMarginPct ?? 20);
-  const daPct = round2(last?.daPctOfRevenue ?? (last?.capex !== null && last?.capex !== undefined && last?.revenue ? Math.abs(last.capex) / last.revenue * 95 : 4));
-  const capexPct = round2(last?.capex !== null && last?.capex !== undefined && last?.revenue ? Math.abs(last.capex) / last.revenue * 100 : 4);
-  const nwcPct = 0;
-  const netDebt = round2(lastNonNull(dd?.perPeriod.map((p) => p.netDebt)) ?? 0);
-  const labelDigits = String(last?.period ?? '').replace(/\D/g, '');
+  const snap = getHistSnapshot();
+  const baseRevenue = snap?.revenue ?? 100;
+  const startGrowth = Math.max(-20, Math.min(40, round2(snap?.growthPct ?? 8) || 8));
+  const margin = round2(snap?.ebitdaMarginPct ?? 20);
+  const capexPct = round2(snap?.capexPctOfRevenue ?? 4);
+  const daPct = round2(snap?.daPctOfRevenue ?? capexPct * 0.95);
+  const netDebt = round2(snap?.netDebt ?? 0);
+  const labelDigits = String(snap?.periodLabel ?? '').replace(/\D/g, '');
 
   return {
     settings: { forecastYears: n },
     base: {
       revenue: round2(baseRevenue),
       yearLabel: labelDigits ? `FY${labelDigits.slice(-4).length === 4 ? labelDigits.slice(-4) : labelDigits}` : 'FY0',
-      currency: dd?.currency ?? 'USD'
+      currency: snap?.currency ?? 'USD'
     },
     bridge: { netDebt, sharesOutstanding: null, currentSharePrice: null },
     assumptions: { waccPct: 8.5, terminalGrowthPct: 2.0, exitEbitdaMultiple: 8.0 },
@@ -63,16 +137,20 @@ function seedValuation(years) {
       ebitdaMarginPct: taper(margin, margin, n).map(round2),
       daPctOfRevenue: taper(daPct, daPct, n).map(round2),
       capexPctOfRevenue: taper(capexPct, capexPct, n).map(round2),
-      nwcChangePctOfRevenue: taper(nwcPct, nwcPct, n).map(round2),
+      nwcChangePctOfRevenue: taper(0, 0, n).map(round2),
       otherCashflows: Array(n).fill(0),
       exceptionals: Array(n).fill(0),
       taxRatePct: Array(n).fill(25)
     },
-    seededFromDD: !!dd
+    manualHist,
+    seededFrom: snap?.source ?? null
   };
 }
 
 let val = project.valuation && project.valuation.drivers ? project.valuation : seedValuation();
+// Keep the module-level manualHist and val.manualHist as one shared object.
+if (!val.manualHist) val.manualHist = manualHist;
+manualHist = val.manualHist;
 
 function persist() {
   project.valuation = val;
@@ -124,7 +202,7 @@ function assumptionsSection() {
   ];
   return `<div class="card" id="sec-assumptions">
     <h3>Assumptions</h3>
-    <p class="small-hint">${val.seededFromDD ? 'Pre-populated from your Financial DD data — every value is editable.' : 'No Financial DD data found in this project — enter base values manually, or complete Step 2 in the Memo Agent first.'} Shares/price are optional (needed only for per-share output) — use the same unit scale as your financials.</p>
+    <p class="small-hint">${(val.seededFrom === 'dd' || val.seededFromDD) ? 'Pre-populated from your Financial DD data — every value is editable.' : val.seededFrom === 'manual' ? 'Seeded from your manually entered historicals — every value is editable.' : 'No Financial DD data found — enter the historicals in the Financials section below and hit "Seed model", or fill these in directly.'} Shares/price are optional (needed only for per-share output) — use the same unit scale as your financials.</p>
     <div class="assum-grid">
       ${items.map(([path, label, value, type]) => `
         <div class="assum-item">
@@ -135,9 +213,43 @@ function assumptionsSection() {
   </div>`;
 }
 
+function manualDerivedRows() {
+  const mh = manualHist;
+  const derived = mh.periods.map((_, i) => {
+    const rev = mh.revenue[i];
+    const prev = i > 0 ? mh.revenue[i - 1] : null;
+    return {
+      growth: rev !== null && prev !== null && prev !== 0 ? ((rev / prev - 1) * 100).toFixed(1) + '%' : '—',
+      margin: rev !== null && rev !== 0 && mh.ebitda[i] !== null ? ((mh.ebitda[i] / rev) * 100).toFixed(1) + '%' : '—',
+      netDebt: mh.total_debt[i] !== null || mh.cash[i] !== null ? fmtMoney((mh.total_debt[i] ?? 0) - (mh.cash[i] ?? 0)) : '—'
+    };
+  });
+  return `
+    <tr><td style="color:#888;">Revenue growth (derived)</td>${derived.map((d) => `<td style="color:#888;">${d.growth}</td>`).join('')}</tr>
+    <tr><td style="color:#888;">EBITDA margin (derived)</td>${derived.map((d) => `<td style="color:#888;">${d.margin}</td>`).join('')}</tr>
+    <tr><td style="color:#888;">Net debt (derived)</td>${derived.map((d) => `<td style="color:#888;">${d.netDebt}</td>`).join('')}</tr>`;
+}
+
 function financialsSection() {
   if (!dd) {
-    return `<div class="card" id="sec-financials"><h3>Financials (historical)</h3><p class="hint">No Financial DD data in this project. The three-statement preview appears here once Step 2 of the Memo Agent is complete.</p></div>`;
+    const mh = manualHist;
+    return `<div class="card" id="sec-financials">
+      <h3>Financials (historical — manual entry)</h3>
+      <p class="small-hint">No Financial DD data loaded in this project, so enter the historicals yourself (from the AFS/QFS): all values as positive amounts, most recent period last. Leave unknown cells blank. Then hit <strong>Seed model from these historicals</strong> to pre-populate the assumptions and forecast drivers below.</p>
+      <div class="prompt-actions" style="margin-bottom:0.6rem;">
+        <button class="btn btn-sm" id="btnMhAddCol">+ Add period</button>
+        <button class="btn btn-sm" id="btnMhDelCol">− Remove last period</button>
+        <button class="btn btn-primary btn-sm" id="btnMhSeed">Seed model from these historicals</button>
+      </div>
+      <div style="overflow-x:auto;"><table class="dd-table">
+        <thead><tr><th>Period label</th>${mh.periods.map((p, i) => `<th><input class="grid-input mh-label" data-idx="${i}" type="text" value="${esc(p)}" style="width:78px;text-align:center;"></th>`).join('')}</tr></thead>
+        <tbody>
+          ${MH_ROWS.map((row) => `<tr><td>${row.label}</td>${mh.periods.map((_, i) => `<td><input class="grid-input mh-input" data-key="${row.key}" data-idx="${i}" type="number" step="any" value="${mh[row.key][i] ?? ''}"></td>`).join('')}</tr>`).join('')}
+        </tbody>
+        <tbody id="mh-derived">${manualDerivedRows()}</tbody>
+      </table></div>
+      <p class="footnote">Prefer automatic extraction? Complete Step 2 in the Memo Agent — if your PDFs are scanned, attach them directly in the claude.ai chat or use the new "Paste text instead" option there.</p>
+    </div>`;
   }
   const rows = [
     ['Revenue', (p) => fmtMoney(p.revenue)],
@@ -347,11 +459,68 @@ function attachHandlers() {
 
   const btnReseed = document.getElementById('btnReseed');
   if (btnReseed) btnReseed.onclick = () => {
-    if (!confirm('Re-seed all assumptions and drivers from Financial DD data? Your edits here will be replaced.')) return;
-    val = seedValuation(val.settings.forecastYears);
+    if (!confirm('Re-seed all assumptions and drivers from the historicals (DD data or manual entry)? Your edits will be replaced.')) return;
+    reseed();
+  };
+
+  attachFinancialsHandlers();
+}
+
+function reseed() {
+  const snap = getHistSnapshot();
+  val = seedValuation(val.settings.forecastYears);
+  persist();
+  renderAll();
+  toast(snap ? (snap.source === 'dd' ? 'Re-seeded from Financial DD' : 'Model seeded from manual historicals') : 'No historicals — reset to defaults');
+}
+
+function renderFinancialsOnly() {
+  document.getElementById('sec-financials').outerHTML = financialsSection();
+  attachFinancialsHandlers();
+}
+
+function attachFinancialsHandlers() {
+  document.querySelectorAll('.mh-input[data-key]').forEach((el) => {
+    el.addEventListener('change', () => {
+      const key = el.getAttribute('data-key');
+      const idx = Number(el.getAttribute('data-idx'));
+      manualHist[key][idx] = el.value === '' ? null : num(el.value);
+      persist();
+      // Update only the derived rows — leaves the just-edited input untouched.
+      const derived = document.getElementById('mh-derived');
+      if (derived) derived.innerHTML = manualDerivedRows();
+    });
+  });
+  document.querySelectorAll('.mh-label[data-idx]').forEach((el) => {
+    el.addEventListener('change', () => {
+      manualHist.periods[Number(el.getAttribute('data-idx'))] = el.value.trim() || 'FY?';
+      persist();
+    });
+  });
+  const add = document.getElementById('btnMhAddCol');
+  if (add) add.onclick = () => {
+    const mh = manualHist;
+    const lastLabel = mh.periods[mh.periods.length - 1] || 'FY2025';
+    const digits = parseInt(String(lastLabel).replace(/\D/g, ''), 10);
+    mh.periods.push(isFinite(digits) ? `FY${digits + 1}` : `Period ${mh.periods.length + 1}`);
+    for (const row of MH_ROWS) mh[row.key].push(null);
     persist();
-    renderAll();
-    toast(dd ? 'Re-seeded from Financial DD' : 'No DD data — reset to defaults');
+    renderFinancialsOnly();
+  };
+  const del = document.getElementById('btnMhDelCol');
+  if (del) del.onclick = () => {
+    const mh = manualHist;
+    if (mh.periods.length <= 1) { toast('Keep at least one period'); return; }
+    mh.periods.pop();
+    for (const row of MH_ROWS) mh[row.key].pop();
+    persist();
+    renderFinancialsOnly();
+  };
+  const seed = document.getElementById('btnMhSeed');
+  if (seed) seed.onclick = () => {
+    if (!getHistSnapshot()) { toast('Enter at least one revenue figure first'); return; }
+    if (!confirm('Seed base year, net debt, and forecast drivers from these historicals? Current assumptions and drivers will be replaced.')) return;
+    reseed();
   };
 }
 

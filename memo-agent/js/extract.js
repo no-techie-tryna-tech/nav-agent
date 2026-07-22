@@ -13,7 +13,11 @@ async function extractPdf(file) {
     const text = content.items.map((item) => item.str).join(' ');
     pages.push(text);
   }
-  return pages.join('\n\n');
+  const text = pages.join('\n\n');
+  if (text.replace(/\s+/g, '').length < 50) {
+    throw new Error(file.name + ': no readable text — this PDF appears to be scanned/image-only. Attach the PDF directly in your claude.ai chat alongside the prompt (Claude reads PDFs visually), or use "Paste text instead" to add its contents here.');
+  }
+  return text;
 }
 
 async function extractDocx(file) {
