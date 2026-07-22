@@ -100,6 +100,30 @@ async function handleFiles(fileList, documents, onChange) {
   }
 }
 
+function pasteDocHtml(n) {
+  return `
+  <details style="margin-top:0.6rem;">
+    <summary class="small-hint" style="cursor:pointer;">Paste text instead (for scanned PDFs or other sources the extractor can't read)</summary>
+    <input type="text" id="pasteName${n}" class="api-input" placeholder="Name this source (e.g. Q3 FY26 results)" style="margin-top:0.5rem;">
+    <textarea id="pasteDoc${n}" class="mono" rows="6" placeholder="Paste the document's text here..." style="margin-top:0.4rem;"></textarea>
+    <div style="margin-top:0.4rem;"><button class="btn btn-sm" id="btnAddPaste${n}">Add as document</button></div>
+  </details>`;
+}
+
+function wirePasteDoc(n, documents, rerender) {
+  const btn = document.getElementById(`btnAddPaste${n}`);
+  if (!btn) return;
+  btn.onclick = () => {
+    const text = document.getElementById(`pasteDoc${n}`).value.trim();
+    if (!text) { toast('Paste some text first'); return; }
+    const name = document.getElementById(`pasteName${n}`).value.trim() || `Pasted text ${documents.length + 1}`;
+    documents.push({ name, text, status: 'done', error: null });
+    persist();
+    rerender();
+    toast(`Added "${name}"`);
+  };
+}
+
 function promptBoxHtml(id, value) {
   return `
   <div class="prompt-box">
@@ -137,6 +161,7 @@ function renderStep1() {
       <div class="upload-zone" id="dropZone">Click to choose files, or drag &amp; drop them here</div>
       <input type="file" id="fileInput1" multiple accept=".pdf,.docx,.txt,.md,.csv" style="display:none;">
       <div id="fileList1">${fileListHtml(s.documents, '__removeStep1File')}</div>
+      ${pasteDocHtml(1)}
     </div>
     <div class="card">
       <span class="section-label">Generate &amp; run prompt</span>
@@ -162,6 +187,7 @@ function renderStep1() {
   };
 
   window.__removeStep1File = (i) => { s.documents.splice(i, 1); persist(); renderStep1(); };
+  wirePasteDoc(1, s.documents, renderStep1);
 
   const genBtn = document.getElementById('btnGen1');
   if (genBtn) genBtn.onclick = () => {
@@ -211,6 +237,7 @@ function renderStep2() {
       <div class="upload-zone" id="dropZone2">Click to choose files, or drag &amp; drop them here (optional)</div>
       <input type="file" id="fileInput2" multiple accept=".pdf,.docx,.txt,.md,.csv" style="display:none;">
       <div id="fileList2">${fileListHtml(s.documents, '__removeStep2File')}</div>
+      ${pasteDocHtml(2)}
     </div>
     <div class="card">
       <span class="section-label">Generate &amp; run prompt</span>
@@ -248,6 +275,7 @@ function renderStep2() {
   };
 
   window.__removeStep2File = (i) => { s.documents.splice(i, 1); persist(); renderStep2(); };
+  wirePasteDoc(2, s.documents, renderStep2);
 
   document.getElementById('btnGen2').onclick = () => {
     const docs = s.documents.filter((d) => d.status === 'done');

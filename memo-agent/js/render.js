@@ -5,12 +5,15 @@ function esc(s) {
 function fmtMoney(n, unit) {
   if (n === null || n === undefined || isNaN(n)) return 'N/A';
   const abs = Math.abs(n);
-  let str;
-  if (abs >= 1e9) str = (n / 1e9).toFixed(2) + 'B';
-  else if (abs >= 1e6) str = (n / 1e6).toFixed(2) + 'M';
-  else if (abs >= 1e3) str = (n / 1e3).toFixed(1) + 'K';
-  else str = n.toFixed(0);
-  return (unit === 'USD' || !unit ? '$' : '') + str + (unit && unit !== 'USD' ? ' ' + unit : '');
+  let mag;
+  if (abs >= 1e9) mag = (abs / 1e9).toFixed(2) + 'B';
+  else if (abs >= 1e6) mag = (abs / 1e6).toFixed(2) + 'M';
+  else if (abs >= 1e3) mag = (abs / 1e3).toFixed(1) + 'K';
+  else mag = abs.toFixed(0);
+  const symbol = (unit === 'USD' || !unit) ? '$' : '';
+  const suffix = (unit && unit !== 'USD') ? ' ' + unit : '';
+  // Sign leads the currency symbol: -$200, not $-200.
+  return (n < 0 ? '-' : '') + symbol + mag + suffix;
 }
 
 function fmtPct(n, digits = 1) {
